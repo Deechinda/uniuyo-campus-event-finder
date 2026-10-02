@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="UNIUYO Campus Event Finder – Discover academic programmes, workshops, sports, social events, and more happening across the University of Uyo." />
+  <meta name="theme-color" content="#0d2240" />
+  <title>UNIUYO Campus Event Finder | University of Uyo</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ── Storage Warning Banner ── -->
+  <div id="storage-warning" class="storage-warning" role="alert">
+    ⚠ Your browser's localStorage is unavailable. Saved events, submissions, and registrations will not be stored between sessions.
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       NAVIGATION
+  ════════════════════════════════════════════ -->
+  <nav class="navbar" role="navigation" aria-label="Main navigation">
+    <div class="nav-inner">
+      <!-- Brand -->
+      <button class="nav-brand" data-nav="home" aria-label="UNIUYO Campus Event Finder – go to home">
+        <span class="nav-brand-icon" aria-hidden="true">🎓</span>
+        <div class="nav-brand-text">
+          <strong>UNIUYO Event Finder</strong>
+          <small>University of Uyo</small>
+        </div>
+      </button>
+
+      <!-- Mobile Hamburger -->
+      <button class="nav-hamburger" id="nav-hamburger" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle navigation menu">☰</button>
+
+      <!-- Nav Links -->
+      <ul class="nav-menu" id="nav-menu" role="list">
+        <li><button class="nav-link nav-active" data-nav="home">Home</button></li>
+        <li><button class="nav-link" data-nav="events">Events</button></li>
+        <li><button class="nav-link" data-nav="pulse">Campus Pulse</button></li>
+        <li><button class="nav-link" data-nav="calendar">Calendar</button></li>
+        <li>
+          <div class="nav-saved-wrap">
+            <button class="nav-link" data-nav="saved">Saved Events</button>
+            <span class="saved-badge" id="saved-badge" aria-label="saved events count"></span>
+          </div>
+        </li>
+        <li><button class="nav-link" data-nav="reminders">My Reminders</button></li>
+        <li><button class="nav-link" data-nav="recommendations">Smart Match</button></li>
+        <li><button class="nav-link" data-nav="submit">Submit Event</button></li>
+        <li><button class="nav-link" data-nav="about">About</button></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Toast Container -->
+  <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- ════════════════════════════════════════════
+       SECTION 1 – HOME
+  ════════════════════════════════════════════ -->
+  <section id="section-home" class="page-section" aria-label="Home page">
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-content">
+        <div class="hero-kicker">University of Uyo · Nigeria</div>
+        <h1>Discover What's Happening on <span>Your Campus.</span></h1>
+        <p class="hero-sub">Find academic programmes, workshops, sports activities, student meetings, and social events happening across the University of Uyo.</p>
+
+        <!-- Hero Search -->
+        <div class="hero-search-bar" role="search">
+          <label for="hero-search" class="sr-only">Search for events</label>
+          <input type="search" id="hero-search" placeholder="Search events, venues, campuses…" autocomplete="off" />
+          <button class="btn btn-primary" id="hero-search-btn" aria-label="Search events">Search</button>
+        </div>
+
+        <div class="hero-actions">
+          <button class="btn btn-ghost btn-lg" id="btn-explore-events">Explore Events ↓</button>
+          <button class="btn btn-primary btn-lg" data-nav="submit">Submit an Event</button>
+        </div>
+      </div>
+
+      <!-- Campus Introduction Cards -->
+      <div class="hero-intro">
+        <div class="hero-intro-card">
+          <div class="hero-intro-icon">🏛️</div>
+          <h3>Permanent Site</h3>
+          <p>The main university campus hosting faculties of Engineering, Sciences, and more.</p>
+        </div>
+        <div class="hero-intro-card">
+          <div class="hero-intro-icon">🏙️</div>
+          <h3>Town Campus</h3>
+          <p>Located in Uyo town, housing Management Sciences, Law, and other programmes.</p>
+        </div>
+        <div class="hero-intro-card">
+          <div class="hero-intro-icon">📚</div>
+          <h3>Annex</h3>
+          <p>The annex campus supporting additional departments and student activities.</p>
+        </div>
+        <div class="hero-intro-card">
+          <div class="hero-intro-icon">📅</div>
+          <h3>Events Calendar</h3>
+          <p>View all upcoming events on a monthly calendar with campus filtering.</p>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ════════════════════════════════════════════
+       SECTION 2 – EVENTS
+  ════════════════════════════════════════════ -->
+  <section id="section-events" class="page-section" aria-label="Browse events">
+    <div class="section-wrap container">
+      <div class="section-header">
+        <span class="section-kicker">Discover Events</span>
+        <h2>Upcoming Campus Events</h2>
+        <p>Browse and filter events across all campuses. New events are added by the community.</p>
+      </div>
+
+      <!-- Filters Bar -->
+      <div class="filters-bar" role="search" aria-label="Event filters">
+        <div class="filter-group">
+          <label for="search-input">Search Events</label>
+          <input type="search" id="search-input" placeholder="Title, venue, campus…" autocomplete="off" />
+        </div>
+        <div class="filter-group">
+          <label for="filter-campus">Campus</label>
+          <select id="filter-campus" aria-label="Filter by campus">
+            <option value="all">All Campuses</option>
+            <!-- Options populated by JS -->
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filter-category">Category</label>
+          <select id="filter-category" aria-label="Filter by category">
+            <option value="all">All Categories</option>
+            <!-- Options populated by JS -->
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filter-date">Date Range</label>
+          <select id="filter-date" aria-label="Filter by date range">
+            <option value="all">All Dates</option>
+            <option value="today">Today</option>
+            <option value="week">Next 7 Days</option>
+            <option value="month">Next 30 Days</option>
+          </select>
+        </div>
+        <div>
+          <label class="sr-only">Reset</label>
+          <button class="btn btn-outline" id="btn-reset-filters">Reset Filters</button>
+        </div>
+      </div>
+
+      <p class="result-count" id="result-count" aria-live="polite" aria-atomic="true"></p>
+
+      <!-- Events Grid -->
+      <div class="events-grid" id="events-grid" role="list" aria-label="Event cards">
+        <!-- Cards rendered by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════
+       SECTION 3 – CAMPUS PULSE
+  ════════════════════════════════════════════ -->
+  <section id="section-pulse" class="page-section" aria-label="Campus Pulse dashboard">
+    <div class="section-wrap container">
+      <div class="section-header">
+        <span class="section-kicker">Signature Feature</span>
+        <h2>Campus Pulse</h2>
+        <p>A live snapshot of upcoming activity across all three campuses.</p>
+      </div>
+
+      <div class="pulse-summary" id="pulse-summary" aria-live="polite">
+        <!-- Summary rendered by JS -->
+      </div>
+
+      <div class="pulse-grid" id="pulse-campuses" aria-label="Campus activity cards">
+        <!-- Pulse cards rendered by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════
+       SECTION 4 – CALENDAR
+  ════════════════════════════════════════════ -->
+  <section id="section-calendar" class="page-section" aria-label="Event calendar">
+    <div class="section-wrap container">
+      <div class="section-header">
+        <span class="section-kicker">Monthly View</span>
+        <h2>Events Calendar</h2>
+        <p>See all events laid out on a monthly calendar. Click any date to see its events.</p>
+      </div>
+
+      <div class="calendar-layout">
+        <!-- Calendar Grid -->
+        <div class="calendar-card">
+          <div class="cal-filter-bar">
+            <label for="cal-campus-filter">Campus:</label>
+            <select id="cal-campus-filter" aria-label="Calendar campus filter">
+              <option value="all">All Campuses</option>
+              <!-- Options populated by JS -->
+            </select>
+          </div>
+
+          <div class="cal-header">
+            <button class="btn btn-outline btn-sm" id="cal-prev" aria-label="Previous month">← Prev</button>
+            <h3 class="cal-heading" id="calendar-heading">Loading…</h3>
+            <button class="btn btn-outline btn-sm" id="cal-next" aria-label="Next month">Next →</button>
+          </div>
+
+          <div class="cal-grid" id="calendar-grid" role="grid" aria-label="Monthly calendar">
+            <!-- Grid rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Date Events Panel -->
+        <div class="cal-events-panel" id="cal-date-events" aria-live="polite" aria-label="Events for selected date">
+          <p class="cal-prompt">Click a date to see events.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════
+       SECTION 5 – SAVED EVENTS
+  ════════════════════════════════════════════ -->
+  <section id="section-saved" class="page-section" aria-label="Saved events">
+    <div class="section-wrap container">
+      <div class="section-header">
+        <span class="section-kicker">My Bookmarks</span>
+        <h2>Saved Events</h2>
+        <p>Events you have bookmarked for easy access.</p>
+      </div>
+
+      <p class="saved-disclaimer">
+        📍 Saved events are stored only in this browser. They are not shared between devices and will be lost if your browser data is cleared.
+      </p>
+
+      <div class="saved-events-list" id="saved-events-list" aria-live="polite" aria-label="Saved event list">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════
+       SECTION 6 – SMART EVENT MATCH (Recommendations)
+  ════════════════════════════════════════════ -->
+  <section id="section-recommendations" class="page-section" aria-label="Smart Event Match recommendations">
+    <div class="section-wrap container">
+      <div class="section-header">
+        <span class="section-kicker">Signature Feature</span>
+        <h2>Smart Event Match</h2>
+        <p>Select your interests below to get personalized event suggestions. No account required.</p>
+      </div>
+
+      <div class="form-card" style="margin-bottom: var(--gap-xl);">
+        <h3 style="margin-bottom: var(--gap-md);">What are you interested in?</h3>
+        <div class="interest-selector" id="interest-selector" role="group" aria-label="Select your interests">
+          <!-- Interest buttons rendered by JS -->
+        </div>
+        <div class="rec-controls">
+          <p>
+            Recommendations are based on simple keyword matching — no AI or personal data collection involved.
+            Your selected interests are saved locally in your browser.
+          </p>
+          <button class="btn btn-primary" id="btn-refresh-rec">Find Matching Events</button>
+        </div>
+      </div>
+
+      <h3 style="margin-bottom: var(--gap-lg);">Recommended for You</h3>
+      <div class="recommendations-grid" id="recommendations-list" aria-live="polite" aria-label="Recommended events">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════
+       SECTION - REMINDERS
+  ════════════════════════════════════════════ -->
+  <section id="section-reminders" class="page-section" aria-label="My Reminders">
+    <div class="section-wrap container">
+      <div class="section-header">
+        <span class="section-kicker">Notifications</span>
+        <h2>My Reminders</h2>
+        <p>Manage your upcoming event reminders.</p>
+      </div>
+      
+      <p class="saved-disclaimer">
+        📍 Reminders are stored locally and will show an in-app notification when the time arrives, provided you have this tab open. Browser notifications may also appear if enabled.
+      </p>
+      
+      <div id="reminders-list" aria-live="polite" aria-label="Reminders list">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════
+       SECTION 7 – SUBMIT AN EVENT
+  ════════════════════════════════════════════ -->
+  <section id="section-submit" class="page-section" aria-label="Submit an event">
+    <div class="section-wrap container">
+      <div class="section-header">
+        <span class="section-kicker">Community</span>
+        <h2>Submit an Event</h2>
+        <p>Share campus activities with your fellow students. All submissions are stored locally as demonstration data.</p>
+      </div>
+
+      <div class="form-card" style="max-width: 760px;">
+        <div class="prototype-badge">
+          ⚠ Prototype Demo – Submissions are stored locally in your browser only. They are not sent to any server or reviewed by university management.
+        </div>
+
+        <form id="submit-event-form" novalidate aria-label="Event submission form">
+          <div class="form-grid">
+            <div class="form-group full-col">
+              <label for="sub-title">Event Title <span class="required" aria-hidden="true">*</span></label>
+              <input type="text" id="sub-title" name="title" placeholder="e.g. Faculty Open Day" required maxlength="120" autocomplete="off" />
+            </div>
+            <div class="form-group">
+              <label for="sub-category">Category <span class="required" aria-hidden="true">*</span></label>
+              <select id="sub-category" name="category" required>
+                <option value="">Select a category</option>
+                <!-- Options populated by JS -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sub-campus">Campus <span class="required" aria-hidden="true">*</span></label>
+              <select id="sub-campus" name="campus" required>
+                <option value="">Select a campus</option>
+                <!-- Options populated by JS -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sub-date">Date <span class="required" aria-hidden="true">*</span></label>
+              <input type="date" id="sub-date" name="date" required />
+            </div>
+            <div class="form-group">
+              <label for="sub-time">Time <span class="required" aria-hidden="true">*</span></label>
+              <input type="time" id="sub-time" name="time" required />
+            </div>
+            <div class="form-group full-col">
+              <label for="sub-venue">Venue <span class="required" aria-hidden="true">*</span></label>
+              <input type="text" id="sub-venue" name="venue" placeholder="e.g. Faculty of Engineering Hall A" required maxlength="120" autocomplete="off" />
+            </div>
+            <div class="form-group full-col">
+              <label for="sub-description">Event Description <span class="required" aria-hidden="true">*</span></label>
+              <textarea id="sub-description" name="description" placeholder="Describe the event, what attendees can expect, who should attend, etc." required rows="5"></textarea>
+            </div>
+          </div>
+
+          <div class="form-submit-row">
+            <p class="form-disclaimer">
+              Submitted events appear with a <strong>Community Submitted</strong> label. They are not verified by the University of Uyo.
+            </p>
+            <button type="submit" class="btn btn-primary btn-lg">Submit Event</button>
+          </div>
+        </form>
+
+        <div id="submit-success" class="success-msg" role="alert"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════
+       SECTION 8 – ABOUT
+  ════════════════════════════════════════════ -->
+  <section id="section-about" class="page-section" aria-label="About this project">
+    <div class="section-wrap container">
+      <div class="about-grid">
+        <div class="about-text">
+          <span class="section-kicker">The Project</span>
+          <h2>About UNIUYO Campus Event Finder</h2>
+          <div class="prototype-badge">🎓 Academic Prototype – Front-End Development Project</div>
+          <p>
+            <strong>UNIUYO Campus Event Finder</strong> is a student academic project developed as part of a front-end web development course at the University of Uyo. The project was designed and implemented using HTML5, CSS3, and Vanilla JavaScript.
+          </p>
+          <p>
+            The website demonstrates a centralized platform where students could discover, organize, and explore campus-related events across the three university campuses: Permanent Site, Town Campus, and Annex.
+          </p>
+          <p>
+            <strong>Important:</strong> This is a demonstration prototype only. All events listed on this website are fictional sample data created for academic purposes. The website has no backend server, no database, and is not officially affiliated with University of Uyo management. Registrations and submitted events are stored only in the current browser.
+          </p>
+          <p>
+            Event data and registrations are stored in browser localStorage. This data is not shared between devices and can be cleared by the user at any time.
+          </p>
+        </div>
+
+        <div class="about-features">
+          <div class="about-feature">
+            <div class="about-feature-icon">🔍</div>
+            <div>
+              <h4>Event Discovery</h4>
+              <p>Search and filter events by title, campus, category, and date range. Results update instantly.</p>
+            </div>
+          </div>
+          <div class="about-feature">
+            <div class="about-feature-icon">📊</div>
+            <div>
+              <h4>Campus Pulse</h4>
+              <p>A dashboard showing upcoming event counts and next events for each campus, calculated dynamically.</p>
+            </div>
+          </div>
+          <div class="about-feature">
+            <div class="about-feature-icon">💡</div>
+            <div>
+              <h4>Smart Event Match</h4>
+              <p>Rule-based personalized recommendations matching your selected interests to event content.</p>
+            </div>
+          </div>
+          <div class="about-feature">
+            <div class="about-feature-icon">📅</div>
+            <div>
+              <h4>Events Calendar</h4>
+              <p>A monthly calendar view with event indicators, campus filtering, and click-to-view functionality.</p>
+            </div>
+          </div>
+          <div class="about-feature">
+            <div class="about-feature-icon">🎫</div>
+            <div>
+              <h4>Digital Event Pass</h4>
+              <p>After demonstration registration, a printable event pass is generated with a unique reference number.</p>
+            </div>
+          </div>
+          <div class="about-feature">
+            <div class="about-feature-icon">🔖</div>
+            <div>
+              <h4>Saved Events</h4>
+              <p>Bookmark events of interest. Bookmarks are stored in your browser and persist between visits.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════
+       EVENT DETAILS MODAL
+  ════════════════════════════════════════════ -->
+  <div class="modal" id="event-details-modal" role="dialog" aria-modal="true" aria-labelledby="event-details-title" hidden>
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2 id="event-details-title">Event Details</h2>
+        <button class="modal-close" data-close-modal="event-details-modal" aria-label="Close event details">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Content rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       REMINDER MODAL
+  ════════════════════════════════════════════ -->
+  <div class="modal" id="reminder-modal" role="dialog" aria-modal="true" aria-labelledby="reminder-modal-title" hidden>
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2 id="reminder-modal-title">Set Reminder</h2>
+        <button class="modal-close" data-close-modal="reminder-modal" aria-label="Close reminder modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: var(--gap-md);">
+          Set a reminder for: <strong id="reminder-event-title"></strong>
+        </p>
+        <form id="reminder-form">
+          <input type="hidden" id="reminder-event-id" />
+          <div class="form-group">
+            <label for="reminder-time-select">Remind me before the event:</label>
+            <select id="reminder-time-select">
+              <option value="15">15 minutes</option>
+              <option value="60">1 hour</option>
+              <option value="1440">1 day</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Save Reminder</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       REGISTRATION MODAL
+  ════════════════════════════════════════════ -->
+  <div class="modal" id="registration-modal" role="dialog" aria-modal="true" aria-labelledby="reg-modal-title" hidden>
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2 id="reg-modal-title">Event Registration</h2>
+        <button class="modal-close" data-close-modal="registration-modal" aria-label="Close registration">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Already registered notice -->
+        <div class="reg-duplicate-notice" id="reg-duplicate-notice" role="alert">
+          ℹ You have already registered for this event in this browser. Your previously generated pass is shown below.
+        </div>
+
+        <!-- Registration Form Section -->
+        <div id="reg-form-section">
+          <p style="margin-bottom: var(--gap-md); font-size: 0.88rem; color: var(--text-muted);">
+            This is a demonstration registration. No data is sent to any server or university office. No email will be sent.
+          </p>
+
+          <p style="font-size: 0.83rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.04em;">Event</p>
+          <div class="reg-event-display" id="reg-event-display">Loading…</div>
+
+          <form id="registration-form" novalidate aria-label="Event registration form">
+            <input type="hidden" id="reg-event-id" name="eventId" />
+
+            <div class="form-group" style="margin-bottom: var(--gap-md);">
+              <label for="reg-name">Full Name <span class="required" aria-hidden="true">*</span></label>
+              <input type="text" id="reg-name" name="name" placeholder="Your full name" required autocomplete="name" />
+            </div>
+            <div class="form-group" style="margin-bottom: var(--gap-lg);">
+              <label for="reg-email">Email Address <span class="required" aria-hidden="true">*</span></label>
+              <input type="email" id="reg-email" name="email" placeholder="your.email@example.com" required autocomplete="email" />
+            </div>
+
+            <div style="padding: 0.6rem 1rem; background: var(--light-grey); border-radius: var(--radius-sm); font-size: 0.78rem; color: var(--text-muted); margin-bottom: var(--gap-lg);">
+              🔒 Your name and email are stored only in your browser. They are not shared with anyone.
+            </div>
+
+            <div class="form-submit-row" style="padding-top: 0; border-top: none;">
+              <button type="submit" class="btn btn-primary">Register & Get Pass</button>
+              <button type="button" class="btn btn-outline" data-close-modal="registration-modal">Cancel</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Event Pass Section -->
+        <div id="reg-pass-section" style="display: none;">
+          <div class="success-msg" style="display: block; margin-bottom: var(--gap-lg);" role="alert">
+            ✓ Registration recorded successfully! Your demonstration event pass is below.
+          </div>
+
+          <div id="event-pass" class="event-pass">
+            <!-- Pass content rendered by JS -->
+          </div>
+
+          <div class="pass-actions">
+            <button class="btn btn-primary" id="btn-print-pass">🖨 Print Event Pass</button>
+            <button class="btn btn-outline" id="btn-register-another">Register for Another Event</button>
+            <button class="btn btn-ghost" data-close-modal="registration-modal" style="background: var(--light-grey); color: var(--text-dark);">Close</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       FOOTER
+  ════════════════════════════════════════════ -->
+  <footer class="footer" role="contentinfo">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="nav-brand-text">
+          <strong>UNIUYO Campus Event Finder</strong>
+          <small>University of Uyo</small>
+        </div>
+        <p class="footer-desc">
+          A student academic project demonstrating a centralized campus event discovery platform for the University of Uyo.
+        </p>
+      </div>
+      <div class="footer-col">
+        <h4>Navigation</h4>
+        <ul>
+          <li><button class="footer-link" data-nav="home">Home</button></li>
+          <li><button class="footer-link" data-nav="events">Events</button></li>
+          <li><button class="footer-link" data-nav="pulse">Campus Pulse</button></li>
+          <li><button class="footer-link" data-nav="calendar">Calendar</button></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Features</h4>
+        <ul>
+          <li><button class="footer-link" data-nav="saved">Saved Events</button></li>
+          <li><button class="footer-link" data-nav="reminders">My Reminders</button></li>
+          <li><button class="footer-link" data-nav="recommendations">Smart Match</button></li>
+          <li><button class="footer-link" data-nav="submit">Submit Event</button></li>
+          <li><button class="footer-link" data-nav="about">About</button></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-bottom-text">© <span id="footer-year"></span> UNIUYO Campus Event Finder. Student Academic Project.</p>
+      <p class="footer-prototype">⚠ Prototype – Not affiliated with official University of Uyo management. All events are fictional demonstration data.</p>
+    </div>
+  </footer>
+
+  <!-- ── JavaScript – order matters ── -->
+  <script src="js/events.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/recommendations.js"></script>
+  <script src="js/calendar.js"></script>
+  <script src="js/registration.js"></script>
+  <script src="js/reminders.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
