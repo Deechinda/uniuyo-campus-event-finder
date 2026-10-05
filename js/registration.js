@@ -2,9 +2,8 @@
 // registration.js – Event registration and Digital Event Pass
 // UNIUYO Campus Event Finder
 // ============================================================
-// IMPORTANT: This is a front-end demonstration only.
-// No data is sent to a server. No email confirmation is sent.
-// Registrations are stored locally in browser localStorage only.
+// Sample events keep local demonstration passes. Published community events
+// use Supabase registrations and server-verified Paystack payments.
 
 const Registration = (() => {
   let currentEventId = null;
@@ -24,11 +23,11 @@ const Registration = (() => {
     // Populate event selector / display
     const eventDisplay = document.getElementById("reg-event-display");
     const eventIdInput = document.getElementById("reg-event-id");
-    if (eventDisplay) eventDisplay.textContent = event.title;
+    if (eventDisplay) eventDisplay.textContent = `${event.title}${event.organizerId ? (event.price > 0 ? ` · ₦${event.price.toLocaleString()} per ticket` : " · Free") : ""}`;
     if (eventIdInput) eventIdInput.value = eventId;
 
     // Check if already registered
-    if (Storage.isAlreadyRegistered(eventId)) {
+    if (!event.organizerId && Storage.isAlreadyRegistered(eventId)) {
       const existing = Storage.getRegistrationForEvent(eventId);
       if (existing) {
         showPassDirectly(existing, event);
@@ -39,8 +38,10 @@ const Registration = (() => {
     // Clear form
     const form = document.getElementById("registration-form");
     if (form) form.reset();
+    const quantity = document.getElementById("reg-quantity"); if (quantity) quantity.value = "1";
     if (eventIdInput) eventIdInput.value = eventId;
-    if (eventDisplay) eventDisplay.textContent = event.title;
+    if (eventDisplay) eventDisplay.textContent = `${event.title}${event.organizerId ? (event.price > 0 ? ` · ₦${event.price.toLocaleString()} per ticket` : " · Free") : ""}`;
+    const submitButton=document.getElementById("registration-submit");if(submitButton)submitButton.textContent=event.organizerId?(event.price>0?`Pay ₦${event.price.toLocaleString()}`:"Get free ticket"):"Register & Get Pass";
 
     // Hide pass, show form
     togglePassView(false);
@@ -53,7 +54,7 @@ const Registration = (() => {
   // ----------------------------------------------------------------
   // Handle form submission
   // ----------------------------------------------------------------
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     clearFormErrors("registration-form");
 
@@ -61,6 +62,8 @@ const Registration = (() => {
     const name = form.querySelector("#reg-name").value.trim();
     const email = form.querySelector("#reg-email").value.trim();
     const eventId = form.querySelector("#reg-event-id").value;
+    const phone = form.querySelector("#reg-phone")?.value.trim() || "";
+    const quantity = Number(form.querySelector("#reg-quantity")?.value || 1);
 
     let valid = true;
 
@@ -79,6 +82,24 @@ const Registration = (() => {
 
     if (!valid) return;
 
+    const event = getAllEvents().find((ev) => ev.id === eventId);
+    if (!event) { showFieldError("reg-email", "Event not found. Please close and try again."); return; }
+    if(event.organizerId){
+      if(!phone){showFieldError("reg-phone","Enter your phone number.");return;}
+      if(!Number.isInteger(quantity)||quantity<1||quantity>10){showFieldError("reg-quantity","Choose 1 to 10 tickets.");return;}
+      const button=document.getElementById("registration-submit");button.disabled=true;button.textContent=event.price>0?"Opening secure payment…":"Creating ticket…";
+      try{
+        if(event.price>0){
+          const callbackUrl=`${location.origin}${location.pathname}?payment=callback`;
+          const result=await DataService.invokePayment({action:"initialize",eventId,name,email,phone,quantity,callbackUrl});
+          sessionStorage.setItem("uniuyo_pending_booking",JSON.stringify({eventId,email}));location.assign(result.authorizationUrl);return;
+        }
+        const ticket=await DataService.issueFreeTicket({eventId,name,email,phone,quantity});showServerTicket(ticket,event,email);showToast("Your ticket is ready.","success");
+      }catch(error){showToast(error.message||"Registration failed.","error");}
+      finally{button.disabled=false;button.textContent=event.price>0?`Pay ₦${(event.price*quantity).toLocaleString()}`:"Get free ticket";}
+      return;
+    }
+
     // Duplicate check
     if (Storage.isAlreadyRegistered(eventId)) {
       const existing = Storage.getRegistrationForEvent(eventId);
@@ -87,12 +108,6 @@ const Registration = (() => {
         showPassDirectly(existing, event);
         return;
       }
-    }
-
-    const event = getAllEvents().find((ev) => ev.id === eventId);
-    if (!event) {
-      showFieldError("reg-email", "Event not found. Please close and try again.");
-      return;
     }
 
     const ref = generateRegistrationRef();
@@ -191,14 +206,13 @@ const Registration = (() => {
           <span class="pass-label">REFERENCE</span>
           <span class="pass-value pass-ref">${escapeHTML(registration.ref)}</span>
         </div>
+        <div class="pass-detail"><span class="pass-label">TICKETS</span><span class="pass-value">${escapeHTML(registration.quantity || 1)}</span></div>
       </div>
 
       <div class="pass-divider"></div>
 
       <div class="pass-notice">
-        <strong>⚠ Prototype Notice:</strong> This is a demonstration event pass generated for a front-end academic project.
-        It is not an official University of Uyo ticket and does not grant real access to any event.
-        This pass is stored locally in your browser only.
+        ${event.organizerId ? '<strong>Community Event Ticket:</strong> Keep this reference safe and present it to the event organizer.' : '<strong>⚠ Prototype Notice:</strong> This is a demonstration pass for a fictional sample event.'}
       </div>`;
   }
 
@@ -220,15 +234,14 @@ const Registration = (() => {
   // Register again (reset form)
   // ----------------------------------------------------------------
   function registerAnother() {
-    togglePassView(false);
-    const form = document.getElementById("registration-form");
-    if (form) form.reset();
-    clearFormErrors("registration-form");
+    closeAllModals(); navigateTo("events");
     currentEventId = null;
   }
+
+  function showServerTicket(ticket,event,email="") { showEventPass({ref:ticket.ticketCode,name:ticket.name,email,quantity:ticket.quantity},event);openModal("registration-modal"); }
 
   // ----------------------------------------------------------------
   // Public API
   // ----------------------------------------------------------------
-  return { openForEvent, handleSubmit, printPass, registerAnother };
+  return { openForEvent, handleSubmit, printPass, registerAnother, showServerTicket };
 })();

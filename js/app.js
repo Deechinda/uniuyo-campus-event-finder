@@ -14,6 +14,8 @@ const AppState = {
   activeSection: "home",
 };
 
+const OrganizerState = { profile: null, banks: [], resolvedAccount: null };
+
 // ----------------------------------------------------------------
 // 2. UTILITIES
 // ----------------------------------------------------------------
@@ -215,6 +217,8 @@ function navigateTo(sectionId) {
     Recommendations.renderInterestSelector("interest-selector");
     Recommendations.renderRecommendations("recommendations-list");
   }
+  if (sectionId === "my-events") renderOrganizerEvents();
+  if (sectionId === "submit") prepareOrganizerForm();
 
   // Scroll to top
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -403,6 +407,7 @@ function createEventCard(event) {
       <span class="meta-item">🏛️ ${escapeHTML(event.campus)}</span>
     </div>
     <p class="event-card-desc">${escapeHTML(event.shortDescription)}</p>
+    ${event.organizerId ? `<div class="event-ticket-price">${event.price > 0 ? `₦${event.price.toLocaleString()} <small>per ticket</small>` : "Free event"}</div>` : ""}
     ${countdownHTML}
     <div class="event-card-actions">
       <button class="btn btn-primary btn-sm" data-action="view-details" data-id="${event.id}">View Details</button>
@@ -410,6 +415,7 @@ function createEventCard(event) {
         ${isSaved ? "✓ Saved" : "♡ Save"}
       </button>
       <button class="btn btn-secondary btn-sm" data-action="register" data-id="${event.id}">Register</button>
+      <button class="btn btn-outline btn-sm" data-action="share" data-id="${event.id}">Share</button>
       <button class="btn btn-outline btn-sm" data-reminder-btn="${event.id}">Set Reminder</button>
     </div>`;
 
@@ -458,6 +464,7 @@ function openEventDetails(eventId) {
       <h3>About this Event</h3>
       <p>${escapeHTML(event.fullDescription || event.shortDescription)}</p>
     </div>
+    ${event.organizerId ? `<div class="event-booking-facts"><div><span>Ticket</span><strong>${event.price > 0 ? `₦${event.price.toLocaleString()}` : "Free"}</strong></div><div><span>Organizer</span><strong>${escapeHTML(event.organizerName)}</strong></div><div><span>Capacity</span><strong>${event.capacity}</strong></div></div>` : ""}
 
     <div class="details-actions">
       <button class="btn btn-primary" data-action="register" data-id="${event.id}">Register for Event</button>
@@ -465,6 +472,7 @@ function openEventDetails(eventId) {
         ${isSaved ? "✓ Saved" : "♡ Save Event"}
       </button>
       <button class="btn btn-outline" data-reminder-btn="${event.id}">Set Reminder</button>
+      <button class="btn btn-outline" data-action="share" data-id="${event.id}">Share Event</button>
     </div>`;
 
   openModal("event-details-modal");
@@ -605,7 +613,7 @@ function initSubmitForm() {
   const form = document.getElementById("submit-event-form");
   if (!form) return;
 
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     clearFormErrors("submit-event-form");
 
@@ -616,6 +624,8 @@ function initSubmitForm() {
     const venue = form.querySelector("#sub-venue").value.trim();
     const campus = form.querySelector("#sub-campus").value;
     const description = form.querySelector("#sub-description").value.trim();
+    const price = Number(form.querySelector("#sub-price").value);
+    const capacity = Number(form.querySelector("#sub-capacity").value);
 
     let valid = true;
 
@@ -626,6 +636,8 @@ function initSubmitForm() {
     if (!venue) { showFieldError("sub-venue", "Venue is required."); valid = false; }
     if (!campus) { showFieldError("sub-campus", "Please select a campus."); valid = false; }
     if (!description) { showFieldError("sub-description", "Description is required."); valid = false; }
+    if (!Number.isFinite(price) || price < 0) { showFieldError("sub-price", "Enter a valid price."); valid = false; }
+    if (!Number.isInteger(capacity) || capacity < 1) { showFieldError("sub-capacity", "Enter a valid capacity."); valid = false; }
 
     if (!valid) return;
 
@@ -634,6 +646,13 @@ function initSubmitForm() {
     if (dateParts.length !== 3) { showFieldError("sub-date", "Invalid date format."); return; }
     const dateObj = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
     if (isNaN(dateObj.getTime())) { showFieldError("sub-date", "Please enter a valid date."); return; }
+
+    const session = ExperienceShell.session();
+    if (!session?.user) { location.hash = "signin"; ExperienceShell.renderPublic("signin"); return; }
+    if (price > 0 && !OrganizerState.profile?.payout_verified) {
+      if (!OrganizerState.resolvedAccount) { showToast("Verify your payout account before publishing a paid event.", "error"); return; }
+      try { await saveOrganizerPayout(session.user); } catch (error) { showToast(error.message || "Payout account could not be saved.", "error"); return; }
+    }
 
     const newEvent = {
       id: generateId("sub"),
@@ -647,18 +666,13 @@ function initSubmitForm() {
       fullDescription: description,
       tags: [],
       source: "community",
+      price,
+      capacity,
     };
-
-    if (!Storage.isAvailable()) {
-      showToast("Browser storage is unavailable. The event could not be saved.", "error");
-      return;
-    }
-
-    const saved = Storage.saveSubmittedEvent(newEvent);
-    if (!saved) {
-      showToast("Could not save the event. Your browser storage may be full.", "error");
-      return;
-    }
+    const submitButton = form.querySelector('[type="submit"]'); submitButton.disabled = true; submitButton.textContent = "Publishing…";
+    let published;
+    try { published = await DataService.createEvent(newEvent, session.user); }
+    catch (error) { showToast(error.message || "Event could not be published.", "error"); submitButton.disabled=false; submitButton.textContent="Submit Event"; return; }
 
     // Show success message
     const successMsg = document.getElementById("submit-success");
@@ -667,12 +681,15 @@ function initSubmitForm() {
       successMsg.innerHTML = `
         <strong>✓ Event submitted successfully!</strong>
         Your event "<em>${escapeHTML(title)}</em>" has been added to the event listings.
-        It is stored in your browser as a Community Submitted event.
-        <button class="btn btn-outline btn-sm" id="view-submitted-btn" style="margin-top:0.5rem">View Events</button>`;
+        It now has a public registration link.
+        <div class="publish-actions"><button class="btn btn-primary btn-sm" data-action="share" data-id="${published.id}">Share Event</button><button class="btn btn-outline btn-sm" id="view-submitted-btn">View Events</button></div>`;
       successMsg.querySelector("#view-submitted-btn")?.addEventListener("click", () => navigateTo("events"));
     }
 
     form.reset();
+    form.querySelector("#sub-price").value = "0";
+    document.getElementById("payout-setup").hidden = true;
+    submitButton.disabled=false; submitButton.textContent="Submit Event";
 
     // Refresh all relevant displays
     applyFilters();
@@ -781,6 +798,8 @@ function initGlobalClickHandlers() {
     } else if (action === "register") {
       closeAllModals();
       Registration.openForEvent(id);
+    } else if (action === "share") {
+      shareEvent(id);
     }
 
     // Backdrop click to close modal
@@ -807,6 +826,12 @@ function initGlobalClickHandlers() {
   // Registration form
   const regForm = document.getElementById("registration-form");
   if (regForm) regForm.addEventListener("submit", Registration.handleSubmit);
+  const quantityInput = document.getElementById("reg-quantity");
+  if (quantityInput) quantityInput.addEventListener("input", () => {
+    const event = getAllEvents().find((item) => item.id === document.getElementById("reg-event-id").value);
+    const button = document.getElementById("registration-submit"); const quantity = Math.max(1, Number(quantityInput.value)||1);
+    if(event?.organizerId&&button) button.textContent=event.price>0?`Pay ₦${(event.price*quantity).toLocaleString()}`:"Get free ticket";
+  });
 
   // Reminder form
   const remForm = document.getElementById("reminder-form");
@@ -839,9 +864,61 @@ function initGlobalClickHandlers() {
     });
   }
 
+  const priceInput=document.getElementById("sub-price");
+  if(priceInput)priceInput.addEventListener("input",async()=>{const setup=document.getElementById("payout-setup");setup.hidden=!(Number(priceInput.value)>0);if(!setup.hidden){try{await loadBanks();await prepareOrganizerForm();}catch(error){showToast(error.message||"Payout setup is unavailable.","error");}}});
+  document.getElementById("verify-payout")?.addEventListener("click",verifyPayoutAccount);
+
   // Footer year
   const yearEl = document.getElementById("footer-year");
   if (yearEl) yearEl.textContent = new Date().getFullYear();
+}
+
+function eventShareUrl(event) { return `${location.origin}${location.pathname}?event=${encodeURIComponent(event.slug || event.id)}`; }
+async function shareEvent(id) {
+  const event = getAllEvents().find((item) => item.id === id); if (!event) return;
+  const payload = { title: event.title, text: `Join me at ${event.title}`, url: eventShareUrl(event) };
+  try { if (navigator.share) await navigator.share(payload); else { await navigator.clipboard.writeText(payload.url); showToast("Event link copied.", "success"); } }
+  catch (error) { if (error.name !== "AbortError") showToast("Could not share this link.", "error"); }
+}
+
+async function prepareOrganizerForm() {
+  const session = ExperienceShell.session(); if (!session?.user) return;
+  try { OrganizerState.profile = await DataService.getProfile(session.user.id); renderPayoutState(); } catch (error) { console.warn(error); }
+}
+
+function renderPayoutState() {
+  const saved = document.getElementById("saved-payout"); const fields = document.getElementById("new-payout-fields");
+  if (OrganizerState.profile?.payout_verified) {
+    saved.hidden=false; fields.hidden=true;
+    saved.innerHTML=`<span class="payout-check">✓</span><div><strong>${escapeHTML(OrganizerState.profile.payout_account_name)}</strong><p>${escapeHTML(OrganizerState.profile.payout_bank_name)} · ••••••${escapeHTML(OrganizerState.profile.payout_account_last4)}</p></div><button type="button" id="change-payout">Change</button>`;
+    saved.querySelector("#change-payout").onclick=()=>{saved.hidden=true;fields.hidden=false;};
+  } else { saved.hidden=true; fields.hidden=false; }
+}
+
+async function loadBanks() {
+  if (OrganizerState.banks.length) return;
+  const result=await DataService.invokePayment({action:"banks"}); OrganizerState.banks=result.banks||[];
+  const select=document.getElementById("payout-bank"); OrganizerState.banks.forEach((bank)=>{const option=document.createElement("option");option.value=bank.code;option.textContent=bank.name;select.appendChild(option);});
+}
+
+async function verifyPayoutAccount() {
+  const bankCode=document.getElementById("payout-bank").value; const accountNumber=document.getElementById("payout-account").value.trim();
+  if(!bankCode||!/^[0-9]{10}$/.test(accountNumber)){showToast("Select a bank and enter a 10-digit account number.","error");return;}
+  const button=document.getElementById("verify-payout");button.disabled=true;button.textContent="Verifying…";
+  try{const result=await DataService.invokePayment({action:"resolve-account",bankCode,accountNumber});const bank=OrganizerState.banks.find((item)=>item.code===bankCode);OrganizerState.resolvedAccount={bankCode,bankName:bank?.name||"Bank",accountNumber,accountName:result.accountName};const box=document.getElementById("resolved-account");box.hidden=false;box.innerHTML=`<span>✓</span><div><small>ACCOUNT FOUND</small><strong>${escapeHTML(result.accountName)}</strong><p>${escapeHTML(bank?.name||"")} · ••••••${escapeHTML(accountNumber.slice(-4))}</p></div>`;}catch(error){showToast(error.message||"Account could not be verified.","error");}finally{button.disabled=false;button.textContent="Verify account";}
+}
+
+async function saveOrganizerPayout(user) {
+  const account=OrganizerState.resolvedAccount;
+  await DataService.invokePayment({action:"save-payout",...account,businessName:user.user_metadata?.full_name||user.email.split("@")[0]});
+  OrganizerState.profile=await DataService.getProfile(user.id); renderPayoutState();
+}
+
+async function renderOrganizerEvents() {
+  const session=ExperienceShell.session(); const list=document.getElementById("organizer-events-list"); const summary=document.getElementById("organizer-summary");
+  if(!session?.user||!list)return;
+  list.innerHTML='<div class="loading-state">Loading your events…</div>';
+  try{const events=await DataService.myEvents(session.user.id);const registrations=events.flatMap((event)=>event.registrations||[]);const tickets=registrations.filter((item)=>["paid","free"].includes(item.payment_status)).reduce((sum,item)=>sum+item.quantity,0);const revenue=registrations.filter((item)=>item.payment_status==="paid").reduce((sum,item)=>sum+Number(item.total_amount),0);summary.innerHTML=`<div><span>Events</span><strong>${events.length}</strong></div><div><span>Tickets</span><strong>${tickets}</strong></div><div><span>Revenue</span><strong>₦${revenue.toLocaleString()}</strong></div>`;list.innerHTML=events.length?events.map((event)=>`<article class="organizer-event-row"><div><span>${formatDate(event.event_date)}</span><h3>${escapeHTML(event.title)}</h3><p>${event.registrations?.length||0} registrations · ${event.price>0?`₦${Number(event.price).toLocaleString()}`:"Free"}</p></div><button class="btn btn-outline btn-sm" data-action="share" data-id="${event.id}">Share</button></article>`).join(""):`<div class="empty-state"><h3>No events yet</h3><p>Create your first campus event and it will appear here.</p><button class="btn btn-primary" onclick="navigateTo('submit')">Create Event</button></div>`;}catch(error){list.innerHTML=`<div class="empty-state"><p>${escapeHTML(error.message)}</p></div>`;}
 }
 
 /** Refreshes all save/unsave buttons for a given event ID across the page. */
@@ -899,4 +976,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Show home by default
   navigateTo("home");
+
+  DataService.loadEvents().then(()=>{
+    applyFilters();renderCampusPulse();Calendar.refreshCalendar();
+    const query=new URLSearchParams(location.search);const shared=query.get("event");
+    if(shared){const event=getAllEvents().find((item)=>item.slug===shared||item.id===shared);if(event){document.body.classList.add("guest-event-mode");document.getElementById("public-root").hidden=true;document.getElementById("private-root").hidden=false;document.getElementById("nav-menu").innerHTML='<li><button class="nav-theme-button" data-theme-toggle>◐ Theme</button></li><li><button class="btn btn-outline btn-sm" onclick="location.hash=\'signin\';location.search=\'\'">Sign in</button></li><li><button class="btn btn-primary btn-sm" onclick="location.hash=\'signup\';location.search=\'\'">Create account</button></li>';document.querySelectorAll(".page-section").forEach((section)=>section.classList.remove("active-section"));document.getElementById("section-events").classList.add("active-section");openEventDetails(event.id);}}
+    const reference=query.get("reference")||query.get("trxref");
+    if(query.get("payment")==="callback"&&reference){const pending=JSON.parse(sessionStorage.getItem("uniuyo_pending_booking")||"null");DataService.invokePayment({action:"verify",reference}).then((result)=>{const event=getAllEvents().find((item)=>item.id===(pending?.eventId||result.ticket.eventId));if(!event)throw new Error("Paid event could not be loaded.");document.getElementById("public-root").hidden=true;document.getElementById("private-root").hidden=false;Registration.showServerTicket(result.ticket,event,pending?.email||"");sessionStorage.removeItem("uniuyo_pending_booking");history.replaceState({},"",location.pathname);showToast("Payment confirmed. Your ticket is ready.","success");}).catch((error)=>showToast(error.message||"Payment verification failed.","error"));}
+  }).catch((error)=>console.warn("Shared events unavailable",error));
 });

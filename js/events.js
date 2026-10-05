@@ -214,7 +214,7 @@ const SAMPLE_EVENTS = [
 function getRelativeDate(daysFromNow) {
   const d = new Date();
   d.setDate(d.getDate() + daysFromNow);
-  return d.toISOString().split("T")[0];
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 /**
@@ -313,5 +313,6 @@ function generateId(prefix = "id") {
 /** Returns all events: sample events merged with stored submitted events. */
 function getAllEvents() {
   const submitted = Storage.getSubmittedEvents();
-  return [...SAMPLE_EVENTS, ...submitted];
+  const remote = typeof DataService !== "undefined" ? DataService.cachedEvents() : [];
+  return [...SAMPLE_EVENTS, ...remote, ...submitted.filter((item) => !remote.some((event) => event.id === item.id))];
 }

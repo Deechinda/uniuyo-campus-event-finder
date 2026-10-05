@@ -10,7 +10,7 @@ const Reminders = (() => {
   // Initialize and check pending reminders
   // ----------------------------------------------------------------
   function init() {
-    if (Notification && Notification.permission === "default") {
+    if ("Notification" in window && Notification.permission === "default") {
       // Provide a way to request permission if needed, but don't ask on load
       // The user will be asked when they set their first reminder.
     }
@@ -52,7 +52,7 @@ const Reminders = (() => {
     showToast(message, "success");
 
     // Browser notification (if permitted)
-    if (Notification && Notification.permission === "granted") {
+    if ("Notification" in window && Notification.permission === "granted") {
       new Notification("UNIUYO Event Reminder", {
         body: message,
         icon: "🎓"
@@ -124,7 +124,7 @@ const Reminders = (() => {
     refreshReminderButtons(eventId);
     
     // Request notification permission if they haven't denied it
-    if (Notification && Notification.permission === "default") {
+    if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
     
